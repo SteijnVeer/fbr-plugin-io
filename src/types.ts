@@ -1,3 +1,4 @@
+import '@steijnveer/file-based-router/utils';
 import type { Server as IoServer, Socket as IoSocket } from 'socket.io';
 
 type IoPluginConfig = {

@@ -1,4 +1,5 @@
 import type { Server } from '@steijnveer/file-based-router';
+import '@steijnveer/file-based-router/utils';
 import { readdirSync } from 'fs';
 import { extname, join, resolve } from 'path';
 import { Server as Io } from 'socket.io';
@@ -35,15 +36,15 @@ function ioPlugin({ eventsDir, extensions }: IoPluginConfig = {}) {
       .filter(([eventName]) => eventName === 'connection')
       .map(([_, handler]) => handler);
     server._io.on('connection', (socket) => {
-      log.debug(`a user connected: ${socket.id}`);
+      log(`a user connected: ${socket.id}`);
       socket.on('disconnect', () => {
-        log.debug(`(${socket.id}) user disconnected`);
+        log(`(${socket.id}) user disconnected`);
       });
       socket.onAny((event, data) => {
-        log.debug(`(${socket.id}) Received event: ${event} with args: ${JSON.stringify(data)}`);
+        log(`(${socket.id}) Received event: ${event} with args: ${JSON.stringify(data)}`);
       });
       socket.onAnyOutgoing((event, data) => {
-        log.debug(`(${socket.id}) Emitting event: ${event} with args: ${JSON.stringify(data)}`);
+        log(`(${socket.id}) Emitting event: ${event} with args: ${JSON.stringify(data)}`);
       });
       for (const [eventName, handler] of events)
         socket.on(eventName, (data) => handler(socket, data ?? null));
