@@ -36,15 +36,15 @@ function ioPlugin({ eventsDir, extensions }: IoPluginConfig = {}) {
       .filter(([eventName]) => eventName === 'connection')
       .map(([_, handler]) => handler);
     server._io.on('connection', (socket) => {
-      log(`a user connected: ${socket.id}`);
+      log.debug(`a user connected: ${socket.id}`);
       socket.on('disconnect', () => {
-        log(`(${socket.id}) user disconnected`);
+        log.debug(`(${socket.id}) user disconnected`);
       });
       socket.onAny((event, data) => {
-        log(`(${socket.id}) Received event: ${event} with args: ${JSON.stringify(data)}`);
+        log.debug(`(${socket.id}) Received event: ${event} with args: ${JSON.stringify(data)}`);
       });
       socket.onAnyOutgoing((event, data) => {
-        log(`(${socket.id}) Emitting event: ${event} with args: ${JSON.stringify(data)}`);
+        log.debug(`(${socket.id}) Emitting event: ${event} with args: ${JSON.stringify(data)}`);
       });
       for (const [eventName, handler] of events)
         socket.on(eventName, (data) => handler(socket, data ?? null));
