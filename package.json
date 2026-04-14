@@ -21,6 +21,15 @@
     "dist",
     "README.md"
   ],
+  "keywords": [
+    "fbr",
+    "io",
+    "socket.io",
+    "file-based",
+    "plugin",
+    "typescript",
+    "websocket"
+  ],
   "license": "MIT",
   "main": "./dist/index.js",
   "name": "@steijnveer/fbr-plugin-io",
