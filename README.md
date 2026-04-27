@@ -17,17 +17,15 @@ npm install @steijnveer/fbr-plugin-io
 ### 1. Configure the plugin
 
 ```typescript
-// '/fbr.config.ts'
+// fbr.config.ts
 import ioPlugin from '@steijnveer/fbr-plugin-io';
 import defineConfig from '@steijnveer/file-based-router/defineConfig';
 
 export default defineConfig({
-  plugins: [
-    ioPlugin({
-      eventsDir: 'src\\events',  // Directory containing event handlers
-      extensions: ['.ts', '.js'] // File extensions to load
-    })
-  ]
+  plugins: [ioPlugin],
+  io: {
+    eventsDir: 'events', // relative to the paths dir, default: 'events'
+  },
 });
 ```
 
@@ -74,26 +72,25 @@ export function connection(socket: Socket) {
 
 ### 3. Access Socket.io server instance
 
-The Socket.io server instance is available on your server object:
+The Socket.io server instance is available via the `Fbr.server` global:
 
 ```typescript
 import type { Io } from '@steijnveer/fbr-plugin-io';
 
 // Emit to all connected clients
-server._io.emit('broadcast', { message: 'Hello everyone!' });
+Fbr.server._io.emit('broadcast', { message: 'Hello everyone!' });
 
 // Access specific rooms
-server._io.to('room-name').emit('room:message', { text: 'Hello room!' });
+Fbr.server._io.to('room-name').emit('room:message', { text: 'Hello room!' });
 ```
 
 ## Configuration
 
-### Plugin Options
+Configure the plugin via `Fbr.Config` augmentation in `fbr.config.ts`:
 
 ```typescript
-interface IoPluginConfig {
-  eventsDir?: string;    // Directory containing event handlers (default: 'src\\events')
-  extensions?: string[]; // File extensions to load (default: ['.ts', '.js'])
+io?: {
+  eventsDir?: string; // Directory for event handler files, relative to paths.srcDir (default: 'events')
 }
 ```
 
@@ -112,7 +109,8 @@ interface IoPluginConfig {
 ### Event Handler Signature
 
 ```typescript
-type EventHandler = (socket: Socket, data: any) => void;
+type EventData = Record<string, any> | null;
+type EventHandler = (socket: Socket, data: EventData) => void;
 ```
 
 - **socket**: The Socket.io socket instance for the connected client
@@ -160,17 +158,58 @@ export function message(socket: Socket, data: { roomId: string, text: string }) 
 }
 ```
 
-## TypeScript Support
+## Event Handler Helpers
 
-The plugin includes full TypeScript support with type definitions:
+The plugin ships a `defineEventHandler` subpath export with two helpers for writing typed, safe event handlers.
+
+### `defineEventHandler`
+
+A no-op identity wrapper that gives TypeScript the correct inferred type for the handler's `data` argument:
 
 ```typescript
-import type { 
-  Socket,      // Socket.io socket instance with type safety
-  Io,          // Socket.io server instance
-  EventsMap,   // Event name to handler mapping
-  IoPluginConfig // Plugin configuration options
-} from '@steijnveer/fbr-plugin-io';
+import { defineEventHandler } from '@steijnveer/fbr-plugin-io/defineEventHandler';
+
+export const message = defineEventHandler<{ text: string }>((socket, data) => {
+  // data is typed as { text: string }
+  socket.emit('message:response', { echo: data.text });
+});
+```
+
+### `createEventHandler`
+
+Wraps a handler with Zod runtime validation. The handler is only called when parsing succeeds; invalid data is silently ignored by default.
+
+```typescript
+import { createEventHandler } from '@steijnveer/fbr-plugin-io/defineEventHandler';
+import { z } from 'zod';
+
+export const message = createEventHandler(
+  z.object({ text: z.string() }),
+  (socket, data) => {
+    // data is fully typed as { text: string }
+    socket.emit('message:response', { echo: data.text });
+  },
+);
+```
+
+Provide an optional `onInvalid` callback to handle validation failures:
+
+```typescript
+export const message = createEventHandler(
+  z.object({ text: z.string() }),
+  (socket, data) => {
+    socket.emit('message:response', { echo: data.text });
+  },
+  (socket, raw) => {
+    socket.emit('error', { message: 'Invalid payload' });
+  },
+);
+```
+
+**Signature:**
+
+```typescript
+createEventHandler(schema: ZodType, handler: (socket, data) => void, onInvalid?: (socket, data: unknown) => void)
 ```
 
 ## Client-Side Usage

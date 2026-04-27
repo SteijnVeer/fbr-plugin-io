@@ -1,23 +1,28 @@
-import '@steijnveer/file-based-router/utils';
+import type { } from '@steijnveer/file-based-router';
 import type { Server as IoServer, Socket as IoSocket } from 'socket.io';
 
-type IoPluginConfig = {
-  eventsDir?: string;
-  extensions?: string[];
-};
+type EventData = Record<string, any> | null;
 
-type EventsMap = Record<string, (data?: any) => void>;
+type EventsMap = Record<string, (data?: EventData) => void>;
 
 type Io<SocketData = any> = IoServer<EventsMap, EventsMap, never, SocketData>;
 
 type Socket<SocketData = any> = IoSocket<EventsMap, EventsMap, never, SocketData>;
 
-declare module '@steijnveer/file-based-router' {
-  interface Server {
-    _io: Io;
+declare global {
+  namespace Fbr {
+    interface Server {
+      _io: Io;
+    }
+    interface Config {
+      io?: {
+        /** Directory containing event handler files, relative to `paths.srcDir`. Default: `'events'` */
+        eventsDir?: string;
+      };
+    }
   }
 }
 
 
-export type { EventsMap, Io, IoPluginConfig, Socket };
+export type { EventData, EventsMap, Io, Socket };
 
